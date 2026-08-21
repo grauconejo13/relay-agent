@@ -12,12 +12,16 @@
 
 ## Milestone 1 — Deterministic Handoff Loop
 
-- [ ] Create demo workspace and Shift A/Shift B fixtures.
-- [ ] Accept messy shift notes through the UI/API.
-- [ ] Persist a handoff and obligations in local development storage.
-- [ ] Support acknowledgement and explicit obligation state transitions.
-- [ ] Add an event timeline so every transition is auditable.
-- [ ] Add tests for handoff creation and state transitions.
+- [x] Create demo workspace and Shift A/Shift B fixtures.
+- [x] Accept operational notes through the handoff API and demo control room.
+- [x] Maintain handoff and obligation state in an in-memory development store.
+- [x] Support transfer, acknowledgement, and explicit obligation state transitions.
+- [x] Add an event timeline so every transition is auditable.
+- [x] Connect the control-room UI to the lifecycle API.
+- [x] Add tests for the complete handoff lifecycle and invalid transition handling.
+- [ ] Verify backend lifecycle tests locally.
+- [ ] Verify the frontend/backend integrated demo locally.
+- [ ] Replace the in-memory store with Firestore in Milestone 3.
 
 ## Milestone 2 — Gemini + ADK
 
