@@ -38,3 +38,32 @@ Shift A reports several open issues, including a conveyor sensor awaiting a repl
 ### Next session
 
 Build the deterministic local handoff loop before introducing Gemini or cloud state.
+
+## Session 002 — 2026-08-21
+
+### Goal
+
+Implement the first real continuity loop while Gemini credentials are not yet available locally.
+
+### Built
+
+- In-memory handoff store designed behind a narrow interface for a later Firestore replacement.
+- Explicit handoff lifecycle: draft → handed off → acknowledged → complete.
+- Explicit obligation lifecycle including open, handed off, acknowledged, waiting, blocked, and resolved states.
+- API endpoints to create, list, transfer, acknowledge, and update handoffs/obligations.
+- Audit timeline for creation, transfer, acknowledgement, obligation updates, and completion.
+- Control-room UI connected to the FastAPI lifecycle API.
+- Three simulated connected operational sources and a three-obligation Shift A → Shift B demo fixture.
+- Backend regression coverage for the full lifecycle and invalid acknowledgement-before-transfer behavior.
+
+### Architecture decision
+
+The first implementation uses process memory, not Firestore. This is intentional: the state machine and API contract can now be tested independently before cloud persistence and Gemini are introduced. Firestore will replace the store implementation rather than changing domain transition rules.
+
+### Local verification still required
+
+The work was written through the GitHub integration while the development machine was unavailable. Frontend install/build, backend tests, and the integrated browser flow must be run locally before this milestone is treated as verified.
+
+### Next session
+
+Run local verification, fix any integration defects, then start the ADK/Gemini extraction layer without giving the model authority over state transitions.
