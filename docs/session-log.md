@@ -64,27 +64,28 @@ The first implementation uses process memory, not Firestore. This is intentional
 
 The work was written through the GitHub integration while the development machine was unavailable. Frontend install/build, backend tests, and the integrated browser flow must be run locally before this milestone is treated as verified.
 
-### Next session
-
-Run local verification, fix any integration defects, then start the ADK/Gemini extraction layer without giving the model authority over state transitions.
-
 ## Session 003 — 2026-08-21
 
 ### Goal
 
-Create the Gemini intake boundary before live Google credentials are available.
+Initialize the live Gemini/ADK code path before credentials are configured.
 
 ### Built
 
-- Strict candidate-obligation extraction schema with owner, dependency, follow-up condition, confidence, and source evidence.
-- `/api/intake/extract` endpoint for review-only extraction.
-- Deterministic fallback extractor that follows the same response contract intended for Gemini.
-- Tests proving extraction does not create or mutate handoff state.
+- Strict candidate-obligation intake boundary retained as review-only output.
+- Current ADK `Agent` + `Gemini` + `App` scaffold for Relay intake.
+- Runtime configuration supporting fallback or Gemini mode.
+- Authentication readiness for either Gemini API key or Google Cloud/Vertex AI configuration.
+- `/api/intake/status` endpoint so the application can report whether live model execution is ready.
+- Updated `.env.example` with safe credential placeholders only.
+- Agents CLI manifest targeting Cloud Run with in-memory local sessions.
+- ADK dependency aligned to the current 2.x package line.
+- Readiness test that runs safely before any model credentials are present.
 
-### Architecture decision
+### Safety boundary
 
-AI extraction is separated from persistence. Gemini/ADK will produce candidates only; deterministic application code remains responsible for accepting candidates and mutating handoff state. This preserves auditability and makes provider failure non-destructive.
+Gemini remains unable to directly mutate handoff state. The live agent will produce candidate obligations and evidence; deterministic Relay code will validate and accept reviewed candidates into authoritative state.
 
 ### Next session
 
-Configure Google credentials, replace the fallback path with a live ADK/Gemini implementation behind the same contract, then add candidate review/approval in the control-room UI.
+Configure credentials locally, verify the ADK agent can reach Gemini, then implement live execution and strict structured parsing behind the existing intake contract.
