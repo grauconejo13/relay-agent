@@ -6,8 +6,11 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: radial-gradient(circle at top, #152131 0, #0a0f16 42%); color: #f4f7fb; min-height: 100vh; }
-button { font: inherit; }
+button, input, textarea { font: inherit; }
 button:disabled { cursor: not-allowed; opacity: .45; }
+input, textarea { width: 100%; border: 1px solid #30445e; border-radius: 12px; background: #0d151f; color: #eef4ff; padding: 11px 12px; }
+input:focus, textarea:focus, button:focus-visible { outline: 2px solid #8fb7ff; outline-offset: 2px; }
+textarea { resize: vertical; line-height: 1.5; }
 
 .shell { max-width: 1120px; margin: 0 auto; padding: 72px 24px 96px; }
 .hero { max-width: 820px; margin-bottom: 32px; }
@@ -18,13 +21,14 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
 .actions button, .flowActions button { border: 0; border-radius: 999px; padding: 13px 20px; background: #f4f7fb; color: #0a0f16; cursor: pointer; }
 .error { margin-top: 16px; color: #ffb4b4; }
 
-.sourceGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 16px; }
+.sourceGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
 .sourceCard { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid #263548; border-radius: 16px; background: rgba(10, 15, 22, .64); }
 .sourceCard strong, .sourceCard small { display: block; }
 .sourceCard small { margin-top: 4px; color: #8190a3; }
 .statusDot { width: 10px; height: 10px; border-radius: 50%; background: #74d6a0; box-shadow: 0 0 0 5px rgba(116,214,160,.09); }
 
 .panel { border: 1px solid #263548; border-radius: 24px; background: rgba(10, 15, 22, .76); padding: 24px; box-shadow: 0 24px 80px rgba(0,0,0,.28); }
+.reviewPanel { margin-bottom: 16px; }
 .timelinePanel { margin-top: 16px; }
 .panelHeader { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #223044; }
 .panelHeader h2 { margin: 0; font-size: 28px; }
@@ -48,8 +52,31 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
 .timeline strong { font-size: 14px; }
 .timeline p { margin: 4px 0 0; color: #91a0b2; line-height: 1.45; }
 
+.reviewIntro { max-width: 760px; color: #9dacbe; line-height: 1.6; }
+.notesField { display: grid; gap: 8px; margin-top: 20px; }
+.notesField > span, .candidateFields label > span, .evidenceBox > span { font-size: 12px; color: #9fb0c4; text-transform: uppercase; letter-spacing: .08em; }
+.warningBox { margin-top: 18px; border: 1px solid #594d2f; background: rgba(89, 77, 47, .18); border-radius: 14px; padding: 12px 14px; color: #dac99b; }
+.warningBox p { margin: 4px 0; }
+.candidateList { display: grid; gap: 14px; margin-top: 22px; }
+.candidateCard { border: 1px solid #263548; border-radius: 18px; background: #0f1822; padding: 18px; }
+.candidateCard--approved { border-color: #3f7057; }
+.candidateCard--rejected { border-color: #6f4545; opacity: .78; }
+.candidateTopline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 16px; font-size: 12px; color: #92a4b8; text-transform: uppercase; letter-spacing: .08em; }
+.reviewState { margin-left: auto; color: #b9d2ff; }
+.candidateFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.candidateFields label { display: grid; gap: 7px; }
+.wideField { grid-column: 1 / -1; }
+.evidenceBox { margin-top: 14px; padding: 14px; border-radius: 12px; background: #0b121a; border: 1px solid #1e2b3a; }
+.evidenceBox p { margin: 7px 0 0; color: #9dacbe; line-height: 1.5; }
+.reviewActions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.reviewActions button { border-radius: 999px; padding: 10px 15px; cursor: pointer; }
+.approveButton { border: 1px solid #4d8065; background: rgba(83, 142, 111, .18); color: #bce3cb; }
+.rejectButton { border: 1px solid #7a4b4b; background: rgba(122, 75, 75, .14); color: #efbcbc; }
+
 @media (max-width: 760px) {
   .sourceGrid { grid-template-columns: 1fr; }
+  .candidateFields { grid-template-columns: 1fr; }
+  .wideField { grid-column: auto; }
 }
 
 @media (max-width: 640px) {
@@ -58,4 +85,6 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
   .secondaryButton { width: 100%; }
   .panelHeader { align-items: flex-start; flex-direction: column; gap: 14px; }
   .timeline li { grid-template-columns: 1fr; gap: 5px; }
+  .reviewState { margin-left: 0; }
+  .reviewActions button { flex: 1 1 100%; }
 }
