@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 type ObligationStatus = 'open' | 'handed_off' | 'acknowledged' | 'waiting' | 'blocked' | 'resolved';
 type HandoffStatus = 'draft' | 'handed_off' | 'acknowledged' | 'complete';
+type ReviewState = 'pending' | 'approved' | 'rejected';
 
 type Obligation = {
   id: string;
@@ -32,6 +33,27 @@ type Handoff = {
   acknowledged_by?: string | null;
 };
 
+type CandidateObligation = {
+  title: string;
+  summary: string;
+  owner?: string | null;
+  dependency?: string | null;
+  follow_up_condition?: string | null;
+  confidence: number;
+  source_note: string;
+};
+
+type ReviewCandidate = CandidateObligation & {
+  id: string;
+  reviewState: ReviewState;
+};
+
+type IntakeResult = {
+  mode: string;
+  candidates: CandidateObligation[];
+  warnings: string[];
+};
+
 const API_URL = process.env.NEXT_PUBLIC_RELAY_API_URL ?? 'http://localhost:8000';
 
 const demoNotes = [
@@ -55,11 +77,21 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 export default function HomePage() {
   const [handoff, setHandoff] = useState<Handoff | null>(null);
   const [busy, setBusy] = useState(false);
+  const [intakeBusy, setIntakeBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [intakeMode, setIntakeMode] = useState<string | null>(null);
+  const [intakeWarnings, setIntakeWarnings] = useState<string[]>([]);
+  const [notes, setNotes] = useState(demoNotes.join('\n'));
+  const [candidates, setCandidates] = useState<ReviewCandidate[]>([]);
 
   const activeCount = useMemo(
     () => handoff?.obligations.filter((item) => item.status !== 'resolved').length ?? 0,
     [handoff]
+  );
+
+  const approvedCount = useMemo(
+    () => candidates.filter((candidate) => candidate.reviewState === 'approved').length,
+    [candidates]
   );
 
   async function runAction(action: () => Promise<Handoff>) {
@@ -72,6 +104,47 @@ export default function HomePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function extractCandidates() {
+    const cleanedNotes = notes
+      .split('\n')
+      .map((note) => note.trim())
+      .filter(Boolean);
+
+    setIntakeBusy(true);
+    setError(null);
+    try {
+      const result = await api<IntakeResult>('/api/intake/extract', {
+        method: 'POST',
+        body: JSON.stringify({ notes: cleanedNotes })
+      });
+      setIntakeMode(result.mode);
+      setIntakeWarnings(result.warnings);
+      setCandidates(
+        result.candidates.map((candidate, index) => ({
+          ...candidate,
+          id: `${index}-${candidate.title}`,
+          reviewState: 'pending'
+        }))
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Relay could not extract candidate obligations.');
+    } finally {
+      setIntakeBusy(false);
+    }
+  }
+
+  function updateCandidate(id: string, field: keyof CandidateObligation, value: string) {
+    setCandidates((current) =>
+      current.map((candidate) => (candidate.id === id ? { ...candidate, [field]: value } : candidate))
+    );
+  }
+
+  function reviewCandidate(id: string, reviewState: ReviewState) {
+    setCandidates((current) =>
+      current.map((candidate) => (candidate.id === id ? { ...candidate, reviewState } : candidate))
+    );
   }
 
   function startDemo() {
@@ -120,13 +193,90 @@ export default function HomePage() {
         <p className="lede">
           Relay watches operational work, carries unresolved obligations across responsibility changes, and keeps an auditable record until the loop is closed.
         </p>
-        <div className="actions">
-          <button type="button" onClick={startDemo} disabled={busy}>
-            {busy ? 'Relay is working…' : handoff ? 'Reset demo handoff' : 'Start demo handoff'}
-          </button>
-          <span>Deterministic demo · Shift A → Shift B</span>
-        </div>
         {error ? <p className="error" role="alert">{error}</p> : null}
+      </section>
+
+      <section className="panel reviewPanel" aria-labelledby="review-heading">
+        <div className="panelHeader">
+          <div>
+            <p className="eyebrow">AI INTAKE / HUMAN REVIEW</p>
+            <h2 id="review-heading">Review candidate obligations</h2>
+          </div>
+          <span className="badge">{intakeMode ? `${intakeMode} · ${approvedCount}/${candidates.length} approved` : 'Review-only'}</span>
+        </div>
+
+        <div className="reviewIntro">
+          <p>
+            Paste operational notes, let Relay extract candidate obligations, then approve, edit, or reject each suggestion. Review decisions stay local to this screen for now and do not mutate the authoritative handoff state.
+          </p>
+        </div>
+
+        <label className="notesField">
+          <span>Operational notes</span>
+          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={7} />
+        </label>
+
+        <div className="flowActions">
+          <button type="button" onClick={extractCandidates} disabled={intakeBusy}>
+            {intakeBusy ? 'Extracting…' : 'Extract candidate obligations'}
+          </button>
+        </div>
+
+        {intakeWarnings.length ? (
+          <div className="warningBox" role="status">
+            {intakeWarnings.map((warning) => <p key={warning}>{warning}</p>)}
+          </div>
+        ) : null}
+
+        {candidates.length ? (
+          <div className="candidateList">
+            {candidates.map((candidate, index) => (
+              <article className={`candidateCard candidateCard--${candidate.reviewState}`} key={candidate.id}>
+                <div className="candidateTopline">
+                  <span>Candidate {index + 1}</span>
+                  <span>{Math.round(candidate.confidence * 100)}% confidence</span>
+                  <span className="reviewState">{candidate.reviewState}</span>
+                </div>
+
+                <div className="candidateFields">
+                  <label>
+                    <span>Title</span>
+                    <input value={candidate.title} onChange={(event) => updateCandidate(candidate.id, 'title', event.target.value)} />
+                  </label>
+                  <label>
+                    <span>Owner</span>
+                    <input value={candidate.owner ?? ''} onChange={(event) => updateCandidate(candidate.id, 'owner', event.target.value)} placeholder="Unassigned" />
+                  </label>
+                  <label className="wideField">
+                    <span>Summary</span>
+                    <textarea value={candidate.summary} onChange={(event) => updateCandidate(candidate.id, 'summary', event.target.value)} rows={3} />
+                  </label>
+                  <label>
+                    <span>Dependency</span>
+                    <input value={candidate.dependency ?? ''} onChange={(event) => updateCandidate(candidate.id, 'dependency', event.target.value)} placeholder="None detected" />
+                  </label>
+                  <label>
+                    <span>Follow-up condition</span>
+                    <input value={candidate.follow_up_condition ?? ''} onChange={(event) => updateCandidate(candidate.id, 'follow_up_condition', event.target.value)} placeholder="None detected" />
+                  </label>
+                </div>
+
+                <div className="evidenceBox">
+                  <span>Source evidence</span>
+                  <p>{candidate.source_note}</p>
+                </div>
+
+                <div className="reviewActions">
+                  <button type="button" className="approveButton" onClick={() => reviewCandidate(candidate.id, 'approved')}>Approve</button>
+                  <button type="button" className="secondaryButton" onClick={() => reviewCandidate(candidate.id, 'pending')}>Keep pending</button>
+                  <button type="button" className="rejectButton" onClick={() => reviewCandidate(candidate.id, 'rejected')}>Reject</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="emptyState"><p>No candidates yet. Extract the sample notes to preview the review workflow.</p></div>
+        )}
       </section>
 
       <section className="sourceGrid" aria-label="Connected systems">
@@ -149,7 +299,13 @@ export default function HomePage() {
 
         {!handoff ? (
           <div className="emptyState">
-            <p>Start the demo to load three operational updates and create Relay’s first continuity record.</p>
+            <p>The review queue above is intentionally isolated from this deterministic handoff state.</p>
+            <div className="actions">
+              <button type="button" onClick={startDemo} disabled={busy}>
+                {busy ? 'Relay is working…' : 'Start deterministic demo handoff'}
+              </button>
+              <span>Shift A → Shift B</span>
+            </div>
           </div>
         ) : (
           <>
