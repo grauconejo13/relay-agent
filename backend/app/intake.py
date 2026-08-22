@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
+
+from .config import settings
 
 
 class CandidateObligation(BaseModel):
@@ -27,27 +28,49 @@ class IntakeRequest(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class IntakeStatus(BaseModel):
+    requested_mode: str
+    active_mode: str
+    model: str
+    ready_for_live_model: bool
+    warnings: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class IntakeExtractor:
     """Bounded extraction boundary for Gemini/ADK.
 
-    Live Gemini execution is intentionally isolated behind this class so the
-    deterministic handoff state machine never depends on model availability.
+    Gemini is allowed to produce review candidates only. It does not mutate
+    Relay's deterministic handoff source of truth.
     """
 
-    model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    def status(self) -> IntakeStatus:
+        warnings = settings.live_readiness_warnings()
+        ready = settings.has_model_auth
+        active_mode = "gemini" if settings.live_intake_requested and ready else "fallback"
+        if settings.live_intake_requested and ready:
+            warnings.append("Gemini credentials detected; live ADK execution will be enabled during credential verification.")
+        return IntakeStatus(
+            requested_mode=settings.intake_mode,
+            active_mode=active_mode,
+            model=settings.gemini_model,
+            ready_for_live_model=ready,
+            warnings=warnings,
+        )
 
     def extract(self, notes: list[str]) -> IntakeResult:
         cleaned = [note.strip() for note in notes if note.strip()]
         if not cleaned:
             return IntakeResult(mode="fallback", candidates=[], warnings=["No operational notes supplied."])
 
-        # Until credentials are configured, use a deterministic extractor that
-        # preserves the same output contract the ADK agent will produce.
+        # The ADK agent is scaffolded in app/agent.py. Until credentials are
+        # verified locally, keep this HTTP path deterministic and safe.
+        warnings = ["Deterministic extraction used; live Gemini execution is not enabled yet."]
+        warnings.extend(settings.live_readiness_warnings())
         return IntakeResult(
             mode="fallback",
             candidates=[self._fallback_candidate(note) for note in cleaned],
-            warnings=["Gemini intake is not configured; deterministic extraction used."],
+            warnings=warnings,
         )
 
     def _fallback_candidate(self, note: str) -> CandidateObligation:
