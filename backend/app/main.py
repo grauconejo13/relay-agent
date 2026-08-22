@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .intake import IntakeRequest, IntakeResult, extractor
+from .intake import IntakeRequest, IntakeResult, IntakeStatus, extractor
 from .models import (
     AcknowledgeHandoffRequest,
     CreateHandoffRequest,
@@ -15,7 +15,7 @@ from .models import (
 )
 from .store import store
 
-app = FastAPI(title="Relay API", version="0.3.0")
+app = FastAPI(title="Relay API", version="0.4.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -28,6 +28,11 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "relay-backend"}
+
+
+@app.get("/api/intake/status", response_model=IntakeStatus)
+def intake_status() -> IntakeStatus:
+    return extractor.status()
 
 
 @app.post("/api/intake/extract", response_model=IntakeResult)
