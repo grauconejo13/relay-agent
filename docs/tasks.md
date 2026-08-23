@@ -25,11 +25,15 @@
 
 ## Milestone 2 — Gemini + ADK
 
-- [ ] Add ADK coordinator agent.
-- [ ] Define bounded tools for handoff extraction and obligation updates.
-- [ ] Use Gemini to extract candidate obligations, dependencies, uncertainty, and follow-up conditions.
-- [ ] Preserve deterministic authority over persisted state.
-- [ ] Add graceful model/provider failure states.
+- [x] Define a strict candidate-obligation extraction schema.
+- [x] Add a bounded intake endpoint that never mutates authoritative handoff state.
+- [x] Add deterministic fallback extraction so development continues without credentials.
+- [x] Capture dependency, owner, follow-up condition, confidence, and source evidence fields.
+- [x] Add tests proving extraction is review-only and does not create handoffs.
+- [ ] Add live ADK coordinator agent once Google credentials are configured.
+- [ ] Use Gemini to populate the same extraction schema from messy notes.
+- [ ] Add UI review/approval for candidate obligations before persistence.
+- [ ] Add graceful live-model/provider failure handling and telemetry.
 
 ## Milestone 3 — Persistent + Async Continuity
 

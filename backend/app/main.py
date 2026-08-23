@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .intake import IntakeRequest, IntakeResult, IntakeStatus, extractor
 from .models import (
     AcknowledgeHandoffRequest,
     CreateHandoffRequest,
@@ -14,7 +15,7 @@ from .models import (
 )
 from .store import store
 
-app = FastAPI(title="Relay API", version="0.2.0")
+app = FastAPI(title="Relay API", version="0.4.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -27,6 +28,17 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "relay-backend"}
+
+
+@app.get("/api/intake/status", response_model=IntakeStatus)
+def intake_status() -> IntakeStatus:
+    return extractor.status()
+
+
+@app.post("/api/intake/extract", response_model=IntakeResult)
+def extract_intake(payload: IntakeRequest) -> IntakeResult:
+    """Extract candidate obligations without mutating Relay's source-of-truth state."""
+    return extractor.extract(payload.notes)
 
 
 def get_handoff_or_404(handoff_id: UUID) -> ShiftHandoff:
@@ -55,7 +67,7 @@ def get_handoff(handoff_id: UUID) -> ShiftHandoff:
 
 @app.post("/api/handoffs", response_model=ShiftHandoff, status_code=201)
 def create_handoff(payload: CreateHandoffRequest) -> ShiftHandoff:
-    """Create a deterministic handoff until Gemini/ADK extraction is wired in."""
+    """Create a deterministic handoff from reviewed notes."""
     obligations = [
         Obligation(
             title=f"Follow up: {note[:60]}",
