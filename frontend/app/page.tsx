@@ -83,6 +83,10 @@ export default function HomePage() {
   const [intakeWarnings, setIntakeWarnings] = useState<string[]>([]);
   const [notes, setNotes] = useState(demoNotes.join('\n'));
   const [candidates, setCandidates] = useState<ReviewCandidate[]>([]);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(true);
+  const [continuityOpen, setContinuityOpen] = useState(true);
+  const [timelineOpen, setTimelineOpen] = useState(false);
 
   const activeCount = useMemo(
     () => handoff?.obligations.filter((item) => item.status !== 'resolved').length ?? 0,
@@ -92,6 +96,11 @@ export default function HomePage() {
   const approvedCount = useMemo(
     () => candidates.filter((candidate) => candidate.reviewState === 'approved').length,
     [candidates]
+  );
+
+  const selectedCandidate = useMemo(
+    () => candidates.find((candidate) => candidate.id === selectedCandidateId) ?? candidates[0] ?? null,
+    [candidates, selectedCandidateId]
   );
 
   async function runAction(action: () => Promise<Handoff>) {
@@ -119,15 +128,16 @@ export default function HomePage() {
         method: 'POST',
         body: JSON.stringify({ notes: cleanedNotes })
       });
+      const nextCandidates = result.candidates.map((candidate, index) => ({
+        ...candidate,
+        id: `${index}-${candidate.title}`,
+        reviewState: 'pending' as ReviewState
+      }));
       setIntakeMode(result.mode);
       setIntakeWarnings(result.warnings);
-      setCandidates(
-        result.candidates.map((candidate, index) => ({
-          ...candidate,
-          id: `${index}-${candidate.title}`,
-          reviewState: 'pending'
-        }))
-      );
+      setCandidates(nextCandidates);
+      setSelectedCandidateId(nextCandidates[0]?.id ?? null);
+      setNotesOpen(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Relay could not extract candidate obligations.');
     } finally {
@@ -205,22 +215,27 @@ export default function HomePage() {
           <span className="badge">{intakeMode ? `${intakeMode} · ${approvedCount}/${candidates.length} approved` : 'Review-only'}</span>
         </div>
 
-        <div className="reviewIntro">
-          <p>
-            Paste operational notes, let Relay extract candidate obligations, then approve, edit, or reject each suggestion. Review decisions stay local to this screen for now and do not mutate the authoritative handoff state.
-          </p>
-        </div>
+        <button className="sectionToggle" type="button" onClick={() => setNotesOpen((current) => !current)} aria-expanded={notesOpen}>
+          <span><strong>Operational notes</strong><small>{notesOpen ? 'Hide intake' : 'Show or edit intake'}</small></span>
+          <span aria-hidden="true">{notesOpen ? '−' : '+'}</span>
+        </button>
 
-        <label className="notesField">
-          <span>Operational notes</span>
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={7} />
-        </label>
-
-        <div className="flowActions">
-          <button type="button" onClick={extractCandidates} disabled={intakeBusy}>
-            {intakeBusy ? 'Extracting…' : 'Extract candidate obligations'}
-          </button>
-        </div>
+        {notesOpen ? (
+          <div className="intakeArea">
+            <p className="reviewIntro">
+              Paste operational notes, let Relay extract candidate obligations, then review one task at a time.
+            </p>
+            <label className="notesField">
+              <span>Operational notes</span>
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={6} />
+            </label>
+            <div className="flowActions">
+              <button type="button" onClick={extractCandidates} disabled={intakeBusy}>
+                {intakeBusy ? 'Extracting…' : 'Extract candidate obligations'}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {intakeWarnings.length ? (
           <div className="warningBox" role="status">
@@ -228,51 +243,71 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {candidates.length ? (
-          <div className="candidateList">
-            {candidates.map((candidate, index) => (
-              <article className={`candidateCard candidateCard--${candidate.reviewState}`} key={candidate.id}>
-                <div className="candidateTopline">
-                  <span>Candidate {index + 1}</span>
-                  <span>{Math.round(candidate.confidence * 100)}% confidence</span>
-                  <span className="reviewState">{candidate.reviewState}</span>
-                </div>
+        {candidates.length && selectedCandidate ? (
+          <div className="reviewWorkspace">
+            <nav className="candidateNav" aria-label="Candidate obligations">
+              <div className="candidateNavHeader">
+                <strong>Tasks</strong>
+                <span>{candidates.length}</span>
+              </div>
+              {candidates.map((candidate, index) => (
+                <button
+                  type="button"
+                  className={`candidateNavItem ${candidate.id === selectedCandidate.id ? 'candidateNavItem--active' : ''}`}
+                  key={candidate.id}
+                  onClick={() => setSelectedCandidateId(candidate.id)}
+                >
+                  <span className="candidateNumber">{index + 1}</span>
+                  <span className="candidateNavText">
+                    <strong>{candidate.title}</strong>
+                    <small>{candidate.owner || 'Unassigned'} · {candidate.reviewState}</small>
+                  </span>
+                  <span className={`stateDot stateDot--${candidate.reviewState}`} aria-hidden="true" />
+                </button>
+              ))}
+            </nav>
 
-                <div className="candidateFields">
-                  <label>
-                    <span>Title</span>
-                    <input value={candidate.title} onChange={(event) => updateCandidate(candidate.id, 'title', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>Owner</span>
-                    <input value={candidate.owner ?? ''} onChange={(event) => updateCandidate(candidate.id, 'owner', event.target.value)} placeholder="Unassigned" />
-                  </label>
-                  <label className="wideField">
-                    <span>Summary</span>
-                    <textarea value={candidate.summary} onChange={(event) => updateCandidate(candidate.id, 'summary', event.target.value)} rows={3} />
-                  </label>
-                  <label>
-                    <span>Dependency</span>
-                    <input value={candidate.dependency ?? ''} onChange={(event) => updateCandidate(candidate.id, 'dependency', event.target.value)} placeholder="None detected" />
-                  </label>
-                  <label>
-                    <span>Follow-up condition</span>
-                    <input value={candidate.follow_up_condition ?? ''} onChange={(event) => updateCandidate(candidate.id, 'follow_up_condition', event.target.value)} placeholder="None detected" />
-                  </label>
-                </div>
+            <article className={`candidateDetail candidateCard--${selectedCandidate.reviewState}`}>
+              <div className="candidateTopline">
+                <span>Selected task</span>
+                <span>{Math.round(selectedCandidate.confidence * 100)}% confidence</span>
+                <span className="reviewState">{selectedCandidate.reviewState}</span>
+              </div>
 
-                <div className="evidenceBox">
-                  <span>Source evidence</span>
-                  <p>{candidate.source_note}</p>
-                </div>
+              <div className="candidateFields">
+                <label>
+                  <span>Title</span>
+                  <input value={selectedCandidate.title} onChange={(event) => updateCandidate(selectedCandidate.id, 'title', event.target.value)} />
+                </label>
+                <label>
+                  <span>Owner</span>
+                  <input value={selectedCandidate.owner ?? ''} onChange={(event) => updateCandidate(selectedCandidate.id, 'owner', event.target.value)} placeholder="Unassigned" />
+                </label>
+                <label className="wideField">
+                  <span>Summary</span>
+                  <textarea value={selectedCandidate.summary} onChange={(event) => updateCandidate(selectedCandidate.id, 'summary', event.target.value)} rows={3} />
+                </label>
+                <label>
+                  <span>Dependency</span>
+                  <input value={selectedCandidate.dependency ?? ''} onChange={(event) => updateCandidate(selectedCandidate.id, 'dependency', event.target.value)} placeholder="None detected" />
+                </label>
+                <label>
+                  <span>Follow-up condition</span>
+                  <input value={selectedCandidate.follow_up_condition ?? ''} onChange={(event) => updateCandidate(selectedCandidate.id, 'follow_up_condition', event.target.value)} placeholder="None detected" />
+                </label>
+              </div>
 
-                <div className="reviewActions">
-                  <button type="button" className="approveButton" onClick={() => reviewCandidate(candidate.id, 'approved')}>Approve</button>
-                  <button type="button" className="secondaryButton" onClick={() => reviewCandidate(candidate.id, 'pending')}>Keep pending</button>
-                  <button type="button" className="rejectButton" onClick={() => reviewCandidate(candidate.id, 'rejected')}>Reject</button>
-                </div>
-              </article>
-            ))}
+              <div className="evidenceBox">
+                <span>Source evidence</span>
+                <p>{selectedCandidate.source_note}</p>
+              </div>
+
+              <div className="reviewActions">
+                <button type="button" className="approveButton" onClick={() => reviewCandidate(selectedCandidate.id, 'approved')}>Approve</button>
+                <button type="button" className="secondaryButton" onClick={() => reviewCandidate(selectedCandidate.id, 'pending')}>Keep pending</button>
+                <button type="button" className="rejectButton" onClick={() => reviewCandidate(selectedCandidate.id, 'rejected')}>Reject</button>
+              </div>
+            </article>
           </div>
         ) : (
           <div className="emptyState"><p>No candidates yet. Extract the sample notes to preview the review workflow.</p></div>
@@ -289,15 +324,12 @@ export default function HomePage() {
       </section>
 
       <section className="panel" aria-labelledby="open-work-heading">
-        <div className="panelHeader">
-          <div>
-            <p className="eyebrow">LIVE CONTINUITY</p>
-            <h2 id="open-work-heading">{handoff ? `${handoff.from_shift} → ${handoff.to_shift}` : 'No active handoff'}</h2>
-          </div>
-          <span className="badge">{handoff ? `${activeCount} active · ${handoff.status.replace('_', ' ')}` : 'Ready'}</span>
-        </div>
+        <button className="sectionToggle sectionToggle--panel" type="button" onClick={() => setContinuityOpen((current) => !current)} aria-expanded={continuityOpen}>
+          <span><span className="eyebrow">LIVE CONTINUITY</span><strong id="open-work-heading">{handoff ? `${handoff.from_shift} → ${handoff.to_shift}` : 'No active handoff'}</strong></span>
+          <span className="toggleMeta">{handoff ? `${activeCount} active · ${handoff.status.replace('_', ' ')}` : 'Ready'} · {continuityOpen ? '−' : '+'}</span>
+        </button>
 
-        {!handoff ? (
+        {continuityOpen ? (!handoff ? (
           <div className="emptyState">
             <p>The review queue above is intentionally isolated from this deterministic handoff state.</p>
             <div className="actions">
@@ -314,8 +346,9 @@ export default function HomePage() {
               <button type="button" onClick={acknowledge} disabled={busy || handoff.status !== 'handed_off'}>Acknowledge handoff</button>
             </div>
             <div className="items">
-              {handoff.obligations.map((item) => (
+              {handoff.obligations.map((item, index) => (
                 <article className="item" key={item.id}>
+                  <span className="itemIndex">{index + 1}</span>
                   <div>
                     <div className="itemMeta"><span>{item.status.replace('_', ' ')}</span><span>{item.owner}</span></div>
                     <h3>{item.title}</h3>
@@ -329,20 +362,25 @@ export default function HomePage() {
               ))}
             </div>
           </>
-        )}
+        )) : null}
       </section>
 
       {handoff ? (
         <section className="panel timelinePanel" aria-labelledby="timeline-heading">
-          <div className="panelHeader"><div><p className="eyebrow">AUDIT TRAIL</p><h2 id="timeline-heading">What Relay carried forward</h2></div></div>
-          <ol className="timeline">
-            {[...handoff.timeline].reverse().map((event) => (
-              <li key={event.id}>
-                <span>{new Date(event.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                <div><strong>{event.actor}</strong><p>{event.message}</p></div>
-              </li>
-            ))}
-          </ol>
+          <button className="sectionToggle sectionToggle--panel" type="button" onClick={() => setTimelineOpen((current) => !current)} aria-expanded={timelineOpen}>
+            <span><span className="eyebrow">AUDIT TRAIL</span><strong id="timeline-heading">What Relay carried forward</strong></span>
+            <span className="toggleMeta">{handoff.timeline.length} events · {timelineOpen ? '−' : '+'}</span>
+          </button>
+          {timelineOpen ? (
+            <ol className="timeline">
+              {[...handoff.timeline].reverse().map((event) => (
+                <li key={event.id}>
+                  <span>{new Date(event.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <div><strong>{event.actor}</strong><p>{event.message}</p></div>
+                </li>
+              ))}
+            </ol>
+          ) : null}
         </section>
       ) : null}
     </main>
