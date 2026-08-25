@@ -67,12 +67,90 @@ textarea { resize: vertical; line-height: 1.5; }
 
 .notesField { display: grid; gap: 8px; margin-top: 18px; }
 .notesField > span, .candidateFields label > span, .evidenceBox > span { font-size: 11px; color: #9fb0c4; text-transform: uppercase; letter-spacing: .08em; }
-.analysisSteps { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-.analysisSteps span { position: relative; padding: 7px 10px 7px 22px; border-radius: 999px; background: #101a25; color: #8fa4bb; font-size: 11px; }
-.analysisSteps span::before { content: ''; position: absolute; left: 9px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #8fb7ff; }
+.analysisSteps { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; position: relative; }
+.analysisSteps span { position: relative; padding: 7px 10px 7px 22px; border-radius: 999px; background: #101a25; color: #8fa4bb; font-size: 11px; transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease; border: 1px solid transparent; }
+.analysisSteps span::before { content: ''; position: absolute; left: 9px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #53667d; transition: background .2s ease, box-shadow .2s ease; }
 .primaryButton { margin-top: 2px; }
 .warningBox { margin-top: 16px; border: 1px solid #594d2f; background: rgba(89,77,47,.18); border-radius: 14px; padding: 12px 14px; color: #dac99b; }
 .warningBox p { margin: 4px 0; }
+
+/* Visible agent activity: this state is driven by the real in-flight request.
+   The Analyze button is disabled only while intakeBusy is true, so the
+   animation stops as soon as the API responds. */
+.analysisSteps:has(+ .primaryButton:disabled) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 46px 12px 12px;
+  border: 1px solid #2c4b70;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(20,35,53,.92), rgba(10,18,27,.96));
+  overflow: hidden;
+}
+.analysisSteps:has(+ .primaryButton:disabled)::before {
+  content: 'Relay AI is analyzing this handoff';
+  position: absolute;
+  top: 13px;
+  left: 16px;
+  color: #dceaff;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: .01em;
+}
+.analysisSteps:has(+ .primaryButton:disabled)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -35%;
+  width: 35%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #8fb7ff, transparent);
+  box-shadow: 0 0 14px rgba(143,183,255,.7);
+  animation: relayScan 1.15s linear infinite;
+}
+.analysisSteps:has(+ .primaryButton:disabled) span {
+  background: #101c29;
+  border-color: #203a56;
+  color: #74869a;
+  transform: translateY(0);
+}
+.analysisSteps:has(+ .primaryButton:disabled) span::before {
+  background: #3b5068;
+}
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(1) { animation: relayStep 2.4s ease-in-out infinite 0s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(2) { animation: relayStep 2.4s ease-in-out infinite .45s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(3) { animation: relayStep 2.4s ease-in-out infinite .9s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(4) { animation: relayStep 2.4s ease-in-out infinite 1.35s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(1)::before { animation: relayDot 2.4s ease-in-out infinite 0s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(2)::before { animation: relayDot 2.4s ease-in-out infinite .45s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(3)::before { animation: relayDot 2.4s ease-in-out infinite .9s; }
+.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(4)::before { animation: relayDot 2.4s ease-in-out infinite 1.35s; }
+.primaryButton:disabled {
+  opacity: 1;
+  color: #dceaff;
+  border-color: #34577d;
+  background: #142439;
+  box-shadow: inset 0 0 0 1px rgba(143,183,255,.08), 0 0 20px rgba(79,126,187,.09);
+}
+.primaryButton:disabled::after {
+  content: '  ·  processing live input';
+  color: #8fb7ff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+@keyframes relayScan {
+  from { left: -35%; }
+  to { left: 100%; }
+}
+@keyframes relayStep {
+  0%, 70%, 100% { color: #74869a; border-color: #203a56; background: #101c29; transform: translateY(0); }
+  15%, 45% { color: #e4efff; border-color: #4b77a9; background: #172a3f; transform: translateY(-1px); }
+}
+@keyframes relayDot {
+  0%, 70%, 100% { background: #3b5068; box-shadow: none; }
+  15%, 45% { background: #8fb7ff; box-shadow: 0 0 0 4px rgba(143,183,255,.12), 0 0 12px rgba(143,183,255,.45); }
+}
 
 .reviewWorkspace { display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); gap: 16px; margin-top: 18px; }
 .candidateNav { align-self: start; border: 1px solid #213043; border-radius: 16px; background: #0b121a; overflow: hidden; }
@@ -122,12 +200,23 @@ textarea { resize: vertical; line-height: 1.5; }
 .emptyState.compact { padding: 16px; }
 .emptyState p { margin-top: 0; }
 
+@media (prefers-reduced-motion: reduce) {
+  .analysisSteps:has(+ .primaryButton:disabled)::after,
+  .analysisSteps:has(+ .primaryButton:disabled) span,
+  .analysisSteps:has(+ .primaryButton:disabled) span::before {
+    animation: none;
+  }
+  .analysisSteps:has(+ .primaryButton:disabled) span { color: #dceaff; border-color: #34577d; }
+  .analysisSteps:has(+ .primaryButton:disabled) span::before { background: #8fb7ff; }
+}
+
 @media (max-width: 860px) {
   .appHeader, .summaryHero { grid-template-columns: 1fr; display: grid; }
   .dateBlock { text-align: left; }
   .summaryStats { grid-template-columns: repeat(3, 1fr); }
   .reviewWorkspace { grid-template-columns: 1fr; }
   .candidateNav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .analysisSteps:has(+ .primaryButton:disabled) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {
@@ -141,4 +230,5 @@ textarea { resize: vertical; line-height: 1.5; }
   .liveTask { grid-template-columns: 28px 1fr; align-items: flex-start; }
   .liveTask button { grid-column: 1 / -1; width: 100%; }
   .timeline li { grid-template-columns: 1fr; gap: 8px; }
+  .analysisSteps:has(+ .primaryButton:disabled) { grid-template-columns: 1fr; padding-top: 50px; }
 }
