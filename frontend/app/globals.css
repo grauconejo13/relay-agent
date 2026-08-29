@@ -6,8 +6,9 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: radial-gradient(circle at top, #152131 0, #0a0f16 42%); color: #f4f7fb; min-height: 100vh; }
-button { font: inherit; }
+button, input { font: inherit; }
 button:disabled { cursor: not-allowed; opacity: .45; }
+a { color: inherit; }
 
 .shell { max-width: 1120px; margin: 0 auto; padding: 72px 24px 96px; }
 .hero { max-width: 820px; margin-bottom: 32px; }
@@ -16,6 +17,7 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
 .lede { max-width: 720px; margin: 24px 0 0; font-size: 20px; line-height: 1.55; color: #b8c4d4; }
 .actions, .flowActions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 28px; color: #8e9bad; }
 .actions button, .flowActions button { border: 0; border-radius: 999px; padding: 13px 20px; background: #f4f7fb; color: #0a0f16; cursor: pointer; }
+.displayLink { border: 1px solid #34527c; border-radius: 999px; padding: 12px 18px; text-decoration: none; color: #cfe0ff; }
 .error { margin-top: 16px; color: #ffb4b4; }
 
 .sourceGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 16px; }
@@ -32,6 +34,11 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
 .emptyState { padding: 34px 4px 10px; color: #91a0b2; }
 .flowActions { margin: 20px 0 0; }
 .flowActions button { background: #18283a; color: #dbe8fb; border: 1px solid #29425f; }
+.claimBar { display: grid; grid-template-columns: auto minmax(220px, 340px) 1fr; gap: 12px; align-items: center; margin-top: 20px; padding: 14px 16px; border: 1px solid #24364c; border-radius: 16px; background: #0d1721; }
+.claimBar label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #9cb8de; }
+.claimBar input { width: 100%; border: 1px solid #30445e; border-radius: 10px; padding: 10px 12px; background: #111d29; color: #f4f7fb; outline: none; }
+.claimBar input:focus { border-color: #6d99d6; }
+.claimBar span { color: #7f90a5; font-size: 13px; line-height: 1.4; }
 .items { display: grid; gap: 12px; margin-top: 20px; }
 .item { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 18px; border-radius: 16px; background: #101923; border: 1px solid #1d2a3a; }
 .item > div { min-width: 0; }
@@ -40,7 +47,10 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
 .itemMeta { display: flex; gap: 8px; flex-wrap: wrap; }
 .itemMeta span { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: #8fb7ff; }
 .dependency { margin-top: 8px !important; color: #d0b77f !important; }
-.secondaryButton { flex: 0 0 auto; border: 1px solid #30445e; border-radius: 999px; padding: 10px 15px; background: transparent; color: #d8e5f7; cursor: pointer; }
+.itemActions { display: flex; flex: 0 0 auto; gap: 8px; }
+.claimButton, .secondaryButton { border: 1px solid #30445e; border-radius: 999px; padding: 10px 15px; cursor: pointer; }
+.claimButton { background: #dbe8fb; color: #0c1520; }
+.secondaryButton { background: transparent; color: #d8e5f7; }
 .timeline { list-style: none; padding: 4px 0 0; margin: 18px 0 0; }
 .timeline li { display: grid; grid-template-columns: 72px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid #1d2a3a; }
 .timeline li:last-child { border-bottom: 0; }
@@ -48,14 +58,52 @@ h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spac
 .timeline strong { font-size: 14px; }
 .timeline p { margin: 4px 0 0; color: #91a0b2; line-height: 1.45; }
 
+.boardShell { min-height: 100vh; padding: 34px clamp(20px, 4vw, 64px) 28px; background: #080d13; }
+.boardHeader { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; padding-bottom: 24px; border-bottom: 1px solid #263548; }
+.boardHeader h1 { font-size: clamp(36px, 5vw, 68px); }
+.boardSync { display: flex; align-items: center; gap: 12px; min-width: 150px; }
+.boardSync strong, .boardSync small { display: block; }
+.boardSync small { margin-top: 4px; color: #8190a3; }
+.boardError { padding: 12px 0; color: #ffb4b4; }
+.boardEmpty { display: grid; place-items: center; min-height: 55vh; text-align: center; color: #91a0b2; }
+.boardEmpty p { margin: 0 0 8px; font-size: 30px; color: #eef4fc; }
+.boardSummary { display: grid; grid-template-columns: 2fr 1fr .6fr; gap: 12px; margin: 20px 0 14px; }
+.boardSummary > div { padding: 16px 18px; border: 1px solid #263548; background: #0d151e; }
+.boardSummary span, .flightHead span { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #71829a; }
+.boardSummary strong { display: block; margin-top: 7px; font-size: 21px; text-transform: capitalize; }
+.flightBoard { border: 1px solid #263548; overflow: hidden; }
+.flightRow { display: grid; grid-template-columns: minmax(360px, 2.2fr) .8fr 1fr 1fr; gap: 18px; align-items: center; padding: 18px 20px; border-bottom: 1px solid #1d2a3a; background: #0c131b; }
+.flightRow:last-child { border-bottom: 0; }
+.flightHead { min-height: auto; background: #111d29; }
+.flightTask strong, .flightTask small { display: block; }
+.flightTask strong { font-size: clamp(17px, 1.6vw, 23px); }
+.flightTask small { margin-top: 6px; max-width: 850px; color: #7f90a5; line-height: 1.4; }
+.flightStatus { text-transform: uppercase; letter-spacing: .08em; color: #9dbdf0; }
+.unassigned { color: #d8b872; }
+.isResolved { opacity: .48; }
+.boardFooter { display: flex; justify-content: space-between; gap: 20px; padding-top: 16px; color: #718196; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .claimBar { grid-template-columns: 1fr; }
+  .flightRow { grid-template-columns: 1.7fr .7fr 1fr; }
+  .flightRow > :last-child { display: none; }
+}
+
 @media (max-width: 760px) {
   .sourceGrid { grid-template-columns: 1fr; }
+  .boardHeader { align-items: flex-start; flex-direction: column; }
+  .boardSummary { grid-template-columns: 1fr; }
+  .flightRow { grid-template-columns: 1fr; gap: 8px; }
+  .flightHead { display: none; }
+  .flightRow > :last-child { display: block; }
 }
 
 @media (max-width: 640px) {
   .shell { padding-top: 44px; }
   .item { align-items: flex-start; flex-direction: column; gap: 14px; }
-  .secondaryButton { width: 100%; }
+  .itemActions { width: 100%; flex-direction: column; }
+  .claimButton, .secondaryButton { width: 100%; }
   .panelHeader { align-items: flex-start; flex-direction: column; gap: 14px; }
   .timeline li { grid-template-columns: 1fr; gap: 5px; }
+  .boardFooter { flex-direction: column; }
 }
