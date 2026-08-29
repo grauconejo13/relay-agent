@@ -56,6 +56,7 @@ export default function HomePage() {
   const [handoff, setHandoff] = useState<Handoff | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [claimName, setClaimName] = useState('');
 
   const activeCount = useMemo(
     () => handoff?.obligations.filter((item) => item.status !== 'resolved').length ?? 0,
@@ -98,6 +99,26 @@ export default function HomePage() {
     );
   }
 
+  function claim(obligationId: string) {
+    if (!handoff) return;
+    const actor = claimName.trim();
+    if (!actor) {
+      setError('Enter your name before claiming a task.');
+      return;
+    }
+
+    return runAction(() =>
+      api<Handoff>(`/api/handoffs/${handoff.id}/obligations/${obligationId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          owner: actor,
+          actor,
+          note: `${actor} claimed this obligation from the shared board.`
+        })
+      })
+    );
+  }
+
   function resolve(obligationId: string) {
     if (!handoff) return;
     return runAction(() =>
@@ -124,6 +145,7 @@ export default function HomePage() {
           <button type="button" onClick={startDemo} disabled={busy}>
             {busy ? 'Relay is working…' : handoff ? 'Reset demo handoff' : 'Start demo handoff'}
           </button>
+          <a className="displayLink" href="/board" target="_blank" rel="noreferrer">Open shared display ↗</a>
           <span>Deterministic demo · Shift A → Shift B</span>
         </div>
         {error ? <p className="error" role="alert">{error}</p> : null}
@@ -157,20 +179,46 @@ export default function HomePage() {
               <button type="button" onClick={transfer} disabled={busy || handoff.status !== 'draft'}>Transfer to Shift B</button>
               <button type="button" onClick={acknowledge} disabled={busy || handoff.status !== 'handed_off'}>Acknowledge handoff</button>
             </div>
+
+            <div className="claimBar">
+              <label htmlFor="claim-name">Team member</label>
+              <input
+                id="claim-name"
+                value={claimName}
+                onChange={(event) => setClaimName(event.target.value)}
+                placeholder="Enter your name to claim work"
+                autoComplete="name"
+              />
+              <span>Choose a task below, then claim it. The shared display picks up the new owner automatically.</span>
+            </div>
+
             <div className="items">
-              {handoff.obligations.map((item) => (
-                <article className="item" key={item.id}>
-                  <div>
-                    <div className="itemMeta"><span>{item.status.replace('_', ' ')}</span><span>{item.owner}</span></div>
-                    <h3>{item.title}</h3>
-                    <p>{item.summary}</p>
-                    {item.dependency ? <p className="dependency">Waiting on: {item.dependency}</p> : null}
-                  </div>
-                  <button type="button" className="secondaryButton" onClick={() => resolve(item.id)} disabled={busy || item.status === 'resolved'}>
-                    {item.status === 'resolved' ? 'Resolved' : 'Resolve'}
-                  </button>
-                </article>
-              ))}
+              {handoff.obligations.map((item) => {
+                const isUnassigned = item.owner === 'Unassigned';
+                return (
+                  <article className="item" key={item.id}>
+                    <div>
+                      <div className="itemMeta"><span>{item.status.replace('_', ' ')}</span><span>{item.owner}</span></div>
+                      <h3>{item.title}</h3>
+                      <p>{item.summary}</p>
+                      {item.dependency ? <p className="dependency">Waiting on: {item.dependency}</p> : null}
+                    </div>
+                    <div className="itemActions">
+                      <button
+                        type="button"
+                        className="claimButton"
+                        onClick={() => claim(item.id)}
+                        disabled={busy || item.status === 'resolved'}
+                      >
+                        {isUnassigned ? 'Claim task' : 'Reassign to me'}
+                      </button>
+                      <button type="button" className="secondaryButton" onClick={() => resolve(item.id)} disabled={busy || item.status === 'resolved'}>
+                        {item.status === 'resolved' ? 'Resolved' : 'Resolve'}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </>
         )}
