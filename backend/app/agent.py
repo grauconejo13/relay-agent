@@ -20,6 +20,11 @@ Rules:
 - Surface uncertainty rather than guessing.
 - Prefer precise, operational language over summaries.
 - The deterministic Relay backend decides whether a candidate becomes an authoritative obligation.
+- Return only valid JSON in this shape: {"candidates": [{"title": str,
+  "summary": str, "owner": str|null, "dependency": str|null,
+  "follow_up_condition": str|null, "confidence": number from 0 to 1,
+  "source_note": str}]}. source_note must be the complete, verbatim incoming
+  note that supports the candidate. Do not wrap the JSON in Markdown.
 """.strip()
 
 root_agent = Agent(
