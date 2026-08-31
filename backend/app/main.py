@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import settings
 from .intake import IntakeRequest, IntakeResult, IntakeStatus, extractor
 from .models import (
     AcknowledgeHandoffRequest,
