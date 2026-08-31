@@ -74,10 +74,8 @@ textarea { resize: vertical; line-height: 1.5; }
 .warningBox { margin-top: 16px; border: 1px solid #594d2f; background: rgba(89,77,47,.18); border-radius: 14px; padding: 12px 14px; color: #dac99b; }
 .warningBox p { margin: 4px 0; }
 
-/* Visible agent activity: this state is driven by the real in-flight request.
-   The Analyze button is disabled only while intakeBusy is true, so the
-   animation stops as soon as the API responds. */
-.analysisSteps:has(+ .primaryButton:disabled) {
+/* Visible agent activity is driven solely by the real in-flight request. */
+.analysisSteps--busy {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
@@ -87,7 +85,7 @@ textarea { resize: vertical; line-height: 1.5; }
   background: linear-gradient(135deg, rgba(20,35,53,.92), rgba(10,18,27,.96));
   overflow: hidden;
 }
-.analysisSteps:has(+ .primaryButton:disabled)::before {
+.analysisSteps--busy::before {
   content: 'Relay AI is analyzing this handoff';
   position: absolute;
   top: 13px;
@@ -97,7 +95,7 @@ textarea { resize: vertical; line-height: 1.5; }
   font-weight: 650;
   letter-spacing: .01em;
 }
-.analysisSteps:has(+ .primaryButton:disabled)::after {
+.analysisSteps--busy::after {
   content: '';
   position: absolute;
   top: 0;
@@ -108,31 +106,35 @@ textarea { resize: vertical; line-height: 1.5; }
   box-shadow: 0 0 14px rgba(143,183,255,.7);
   animation: relayScan 1.15s linear infinite;
 }
-.analysisSteps:has(+ .primaryButton:disabled) span {
+.analysisSteps--busy span {
   background: #101c29;
   border-color: #203a56;
   color: #74869a;
   transform: translateY(0);
 }
-.analysisSteps:has(+ .primaryButton:disabled) span::before {
+.analysisSteps--busy span::before {
   background: #3b5068;
 }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(1) { animation: relayStep 2.4s ease-in-out infinite 0s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(2) { animation: relayStep 2.4s ease-in-out infinite .45s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(3) { animation: relayStep 2.4s ease-in-out infinite .9s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(4) { animation: relayStep 2.4s ease-in-out infinite 1.35s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(1)::before { animation: relayDot 2.4s ease-in-out infinite 0s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(2)::before { animation: relayDot 2.4s ease-in-out infinite .45s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(3)::before { animation: relayDot 2.4s ease-in-out infinite .9s; }
-.analysisSteps:has(+ .primaryButton:disabled) span:nth-child(4)::before { animation: relayDot 2.4s ease-in-out infinite 1.35s; }
+.analysisSteps--busy span:nth-child(1) { animation: relayStep 2.4s ease-in-out infinite 0s; }
+.analysisSteps--busy span:nth-child(2) { animation: relayStep 2.4s ease-in-out infinite .45s; }
+.analysisSteps--busy span:nth-child(3) { animation: relayStep 2.4s ease-in-out infinite .9s; }
+.analysisSteps--busy span:nth-child(4) { animation: relayStep 2.4s ease-in-out infinite 1.35s; }
+.analysisSteps--busy span:nth-child(1)::before { animation: relayDot 2.4s ease-in-out infinite 0s; }
+.analysisSteps--busy span:nth-child(2)::before { animation: relayDot 2.4s ease-in-out infinite .45s; }
+.analysisSteps--busy span:nth-child(3)::before { animation: relayDot 2.4s ease-in-out infinite .9s; }
+.analysisSteps--busy span:nth-child(4)::before { animation: relayDot 2.4s ease-in-out infinite 1.35s; }
 .primaryButton:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+.primaryButton--busy {
   opacity: 1;
   color: #dceaff;
   border-color: #34577d;
   background: #142439;
   box-shadow: inset 0 0 0 1px rgba(143,183,255,.08), 0 0 20px rgba(79,126,187,.09);
 }
-.primaryButton:disabled::after {
+.primaryButton--busy::after {
   content: '  ·  processing live input';
   color: #8fb7ff;
   font-size: 11px;
@@ -201,13 +203,13 @@ textarea { resize: vertical; line-height: 1.5; }
 .emptyState p { margin-top: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .analysisSteps:has(+ .primaryButton:disabled)::after,
-  .analysisSteps:has(+ .primaryButton:disabled) span,
-  .analysisSteps:has(+ .primaryButton:disabled) span::before {
+  .analysisSteps--busy::after,
+  .analysisSteps--busy span,
+  .analysisSteps--busy span::before {
     animation: none;
   }
-  .analysisSteps:has(+ .primaryButton:disabled) span { color: #dceaff; border-color: #34577d; }
-  .analysisSteps:has(+ .primaryButton:disabled) span::before { background: #8fb7ff; }
+  .analysisSteps--busy span { color: #dceaff; border-color: #34577d; }
+  .analysisSteps--busy span::before { background: #8fb7ff; }
 }
 
 @media (max-width: 860px) {
@@ -216,7 +218,7 @@ textarea { resize: vertical; line-height: 1.5; }
   .summaryStats { grid-template-columns: repeat(3, 1fr); }
   .reviewWorkspace { grid-template-columns: 1fr; }
   .candidateNav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
-  .analysisSteps:has(+ .primaryButton:disabled) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analysisSteps--busy { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {
@@ -230,5 +232,5 @@ textarea { resize: vertical; line-height: 1.5; }
   .liveTask { grid-template-columns: 28px 1fr; align-items: flex-start; }
   .liveTask button { grid-column: 1 / -1; width: 100%; }
   .timeline li { grid-template-columns: 1fr; gap: 8px; }
-  .analysisSteps:has(+ .primaryButton:disabled) { grid-template-columns: 1fr; padding-top: 50px; }
+  .analysisSteps--busy { grid-template-columns: 1fr; padding-top: 50px; }
 }

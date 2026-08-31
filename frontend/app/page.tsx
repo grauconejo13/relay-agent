@@ -105,6 +105,16 @@ export default function HomePage() {
   const [candidates, setCandidates] = useState<ReviewCandidate[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [lastAnalysisAt, setLastAnalysisAt] = useState<string | null>(null);
+  const [lastAnalyzedNotes, setLastAnalyzedNotes] = useState<string | null>(null);
+
+  const notesAreUpToDate = lastAnalyzedNotes !== null && notes === lastAnalyzedNotes;
+  const analysisButtonLabel = intakeBusy
+    ? 'Relay is analyzing…'
+    : notesAreUpToDate
+      ? 'Analysis up to date'
+      : lastAnalyzedNotes !== null
+        ? 'Re-analyze updated notes'
+        : 'Analyze notes with Relay';
 
   const activeCount = useMemo(
     () => handoff?.obligations.filter((item) => item.status !== 'resolved').length ?? 0,
@@ -134,7 +144,8 @@ export default function HomePage() {
   }
 
   async function extractCandidates() {
-    const cleanedNotes = notes.split('\n').map((note) => note.trim()).filter(Boolean);
+    const notesAtRequest = notes;
+    const cleanedNotes = notesAtRequest.split('\n').map((note) => note.trim()).filter(Boolean);
     setIntakeBusy(true);
     setError(null);
     try {
@@ -152,6 +163,7 @@ export default function HomePage() {
       setCandidates(nextCandidates);
       setSelectedCandidateId(nextCandidates[0]?.id ?? null);
       setLastAnalysisAt(new Date().toISOString());
+      setLastAnalyzedNotes(notesAtRequest);
       setTab('summary');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Relay could not extract candidate obligations.');
@@ -299,11 +311,11 @@ export default function HomePage() {
             <span>Shift notes</span>
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={10} />
           </label>
-          <div className="analysisSteps">
+          <div className={intakeBusy ? 'analysisSteps analysisSteps--busy' : 'analysisSteps'}>
             <span>Identify unresolved work</span><span>Extract dependencies</span><span>Detect owners</span><span>Find follow-up conditions</span>
           </div>
-          <button className="primaryButton" type="button" onClick={extractCandidates} disabled={intakeBusy}>
-            {intakeBusy ? 'Relay is analyzing…' : 'Analyze notes with Relay'}
+          <button className={intakeBusy ? 'primaryButton primaryButton--busy' : 'primaryButton'} type="button" onClick={extractCandidates} disabled={intakeBusy || notesAreUpToDate}>
+            {analysisButtonLabel}
           </button>
           {intakeWarnings.length ? <div className="warningBox">{intakeWarnings.map((warning) => <p key={warning}>{warning}</p>)}</div> : null}
         </section>
