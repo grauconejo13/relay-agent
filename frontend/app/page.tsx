@@ -180,10 +180,26 @@ export default function HomePage() {
     setCandidates((current) => current.map((candidate) => candidate.id === id ? { ...candidate, reviewState } : candidate));
   }
 
-  function startDemo() {
+  function startHandoff() {
+    const approvedCandidates = candidates.filter((candidate) => candidate.reviewState === 'approved');
+    if (!approvedCandidates.length) {
+      setError('Approve at least one detected task before starting the handoff. Pending and rejected tasks are excluded.');
+      return;
+    }
     return runAction(() => api<Handoff>('/api/handoffs', {
       method: 'POST',
-      body: JSON.stringify({ from_shift: 'Shift A', to_shift: 'Shift B', notes: demoNotes })
+      body: JSON.stringify({
+        from_shift: 'Shift A',
+        to_shift: 'Shift B',
+        obligations: approvedCandidates.map((candidate) => ({
+          title: candidate.title,
+          summary: candidate.summary,
+          owner: candidate.owner?.trim() || 'Unassigned',
+          dependency: candidate.dependency?.trim() || null,
+          follow_up_condition: candidate.follow_up_condition?.trim() || null,
+          source_note: candidate.source_note
+        }))
+      })
     }));
   }
 
@@ -293,10 +309,11 @@ export default function HomePage() {
           <section className="quickActions">
             <button type="button" onClick={() => setTab('notes')}>Review notes</button>
             <button type="button" onClick={() => setTab('tasks')} disabled={!candidates.length}>Review detected tasks</button>
-            {!handoff ? <button type="button" onClick={startDemo} disabled={busy}>{busy ? 'Starting…' : 'Start demo handoff'}</button> : null}
+            {!handoff ? <button type="button" onClick={startHandoff} disabled={busy || approvedCount === 0}>{busy ? 'Starting…' : 'Start reviewed handoff'}</button> : null}
             {handoff?.status === 'draft' ? <button type="button" onClick={transfer} disabled={busy}>Transfer to Shift B</button> : null}
             {handoff?.status === 'handed_off' ? <button type="button" onClick={acknowledge} disabled={busy}>Acknowledge handoff</button> : null}
           </section>
+          {!handoff && approvedCount === 0 ? <p className="sectionIntro">Approve at least one detected task to start the handoff. Pending and rejected tasks are excluded.</p> : null}
         </section>
       ) : null}
 
@@ -367,7 +384,7 @@ export default function HomePage() {
                 <article className="liveTask" key={item.id}>
                   <span>{index + 1}</span>
                   <div><small>{item.status.replace('_', ' ')} · {item.owner}</small><strong>{item.title}</strong><p>{item.summary}</p>{item.dependency ? <em>Waiting on: {item.dependency}</em> : null}</div>
-                  <button type="button" onClick={() => resolve(item.id)} disabled={busy || item.status === 'resolved'}>{item.status === 'resolved' ? 'Resolved' : 'Resolve'}</button>
+                  {handoff.status === 'acknowledged' ? <button type="button" onClick={() => resolve(item.id)} disabled={busy || item.status === 'resolved'}>{item.status === 'resolved' ? 'Resolved' : 'Resolve'}</button> : null}
                 </article>
               ))}
             </div>

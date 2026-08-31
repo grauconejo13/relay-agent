@@ -61,6 +61,51 @@ def test_complete_handoff_lifecycle() -> None:
     assert handoff["timeline"][-1]["type"] == "completed"
 
 
+def test_handoff_uses_human_reviewed_obligation_fields() -> None:
+    response = client.post(
+        "/api/handoffs",
+        json={
+            "from_shift": "Shift A",
+            "to_shift": "Shift B",
+            "notes": ["This legacy note must not be used."],
+            "obligations": [
+                {
+                    "title": "Confirm revised carrier ETA",
+                    "summary": "Outbound must confirm the revised Northstar arrival time.",
+                    "owner": "Jordan",
+                    "dependency": "Northstar dispatch",
+                    "follow_up_condition": "Before trailer assignment",
+                    "source_note": "Carrier Northstar is running late.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+    obligation = response.json()["obligations"][0]
+    assert obligation["title"] == "Confirm revised carrier ETA"
+    assert obligation["summary"] == "Outbound must confirm the revised Northstar arrival time."
+    assert obligation["owner"] == "Jordan"
+    assert obligation["dependency"] == "Northstar dispatch"
+    assert obligation["follow_up_condition"] == "Before trailer assignment"
+    assert obligation["source_note"] == "Carrier Northstar is running late."
+
+
+def test_draft_obligation_cannot_be_resolved() -> None:
+    created = client.post(
+        "/api/handoffs",
+        json={"from_shift": "Shift A", "to_shift": "Shift B", "notes": ["Open incident"]},
+    ).json()
+
+    response = client.patch(
+        f"/api/handoffs/{created['id']}/obligations/{created['obligations'][0]['id']}",
+        json={"status": "resolved", "actor": "Shift B lead"},
+    )
+
+    assert response.status_code == 409
+    assert "acknowledged" in response.json()["detail"].lower()
+
+
 def test_acknowledgement_before_transfer_is_rejected() -> None:
     created = client.post(
         "/api/handoffs",

@@ -49,6 +49,7 @@ class Obligation(BaseModel):
     owner: str
     status: ObligationStatus = ObligationStatus.OPEN
     dependency: str | None = None
+    follow_up_condition: str | None = None
     due_at: datetime | None = None
     source_note: str | None = None
     created_at: datetime = Field(default_factory=utcnow)
@@ -68,10 +69,22 @@ class ShiftHandoff(BaseModel):
     acknowledged_at: datetime | None = None
 
 
+class CreateObligationRequest(BaseModel):
+    """A human-reviewed candidate submitted for deterministic handoff creation."""
+
+    title: str
+    summary: str
+    owner: str = "Unassigned"
+    dependency: str | None = None
+    follow_up_condition: str | None = None
+    source_note: str | None = None
+
+
 class CreateHandoffRequest(BaseModel):
     from_shift: str
     to_shift: str
     notes: list[str] = Field(default_factory=list)
+    obligations: list[CreateObligationRequest] | None = None
 
 
 class AcknowledgeHandoffRequest(BaseModel):

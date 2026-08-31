@@ -103,6 +103,8 @@ class HandoffStore:
         note: str | None = None,
         actor: str = "Relay",
     ) -> ShiftHandoff:
+        if status == ObligationStatus.RESOLVED and handoff.status != HandoffStatus.ACKNOWLEDGED:
+            raise ValueError("Obligations can be resolved only after the handoff is acknowledged.")
         if status is not None:
             obligation.status = status
         if owner is not None:

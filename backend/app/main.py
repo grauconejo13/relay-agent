@@ -67,17 +67,30 @@ def get_handoff(handoff_id: UUID) -> ShiftHandoff:
 
 @app.post("/api/handoffs", response_model=ShiftHandoff, status_code=201)
 def create_handoff(payload: CreateHandoffRequest) -> ShiftHandoff:
-    """Create a deterministic handoff from reviewed notes."""
-    obligations = [
-        Obligation(
-            title=f"Follow up: {note[:60]}",
-            summary=note,
-            owner="Unassigned",
-            source_note=note,
-        )
-        for note in payload.notes
-        if note.strip()
-    ]
+    """Create a deterministic handoff from human-reviewed candidates or legacy notes."""
+    if payload.obligations is not None:
+        obligations = [
+            Obligation(
+                title=item.title,
+                summary=item.summary,
+                owner=item.owner,
+                dependency=item.dependency,
+                follow_up_condition=item.follow_up_condition,
+                source_note=item.source_note,
+            )
+            for item in payload.obligations
+        ]
+    else:
+        obligations = [
+            Obligation(
+                title=f"Follow up: {note[:60]}",
+                summary=note,
+                owner="Unassigned",
+                source_note=note,
+            )
+            for note in payload.notes
+            if note.strip()
+        ]
 
     handoff = ShiftHandoff(
         from_shift=payload.from_shift,
@@ -119,12 +132,15 @@ def update_obligation(
 ) -> ShiftHandoff:
     handoff = get_handoff_or_404(handoff_id)
     obligation = get_obligation_or_404(handoff, obligation_id)
-    return store.update_obligation(
-        handoff,
-        obligation,
-        status=payload.status,
-        owner=payload.owner,
-        dependency=payload.dependency,
-        note=payload.note,
-        actor=payload.actor,
-    )
+    try:
+        return store.update_obligation(
+            handoff,
+            obligation,
+            status=payload.status,
+            owner=payload.owner,
+            dependency=payload.dependency,
+            note=payload.note,
+            actor=payload.actor,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
