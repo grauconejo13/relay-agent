@@ -8,6 +8,7 @@ from dataclasses import dataclass
 class RelaySettings:
     intake_mode: str = os.getenv("RELAY_INTAKE_MODE", "fallback").lower()
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    cors_origins: str = os.getenv("RELAY_CORS_ORIGINS", "http://localhost:3000")
     google_cloud_project: str | None = os.getenv("GOOGLE_CLOUD_PROJECT") or None
     google_cloud_location: str = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
     gemini_api_key: str | None = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or None
@@ -19,6 +20,10 @@ class RelaySettings:
     @property
     def has_model_auth(self) -> bool:
         return bool(self.gemini_api_key or self.google_cloud_project)
+
+    @property
+    def allowed_cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     def live_readiness_warnings(self) -> list[str]:
         warnings: list[str] = []
